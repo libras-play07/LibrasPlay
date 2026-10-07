@@ -1,0 +1,15 @@
+{
+  "name": "libras-play-3-movimento",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Libras Play com letras estáticas, H, J, K, X, Y e Z com movimento, TensorFlow.js e SQLite.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "sqlite3": "^5.1.7"
+  }
+}

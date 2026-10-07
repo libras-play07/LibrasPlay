@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="LibrasPlay: aprenda e pratique o alfabeto em Libras com inteligência artificial."
+  >
+
+  <title>LibrasPlay 3.0</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <script>
+    const activePlayerRaw = localStorage.getItem('librasPlayActivePlayer');
+    if (!activePlayerRaw) {
+      window.location.replace('perfil.html');
+    }
+  </script>
+
+</head>
+
+<body class="menu-page illustrated-menu-page">
+
+  <main
+    class="illustrated-menu"
+    aria-label="Menu principal do LibrasPlay"
+  >
+
+    <img
+      class="illustrated-menu-background"
+      src="menu-librasplay-caramelo-fullscreen.png"
+      alt="Cenário de floresta do LibrasPlay com o mascote cachorro caramelo"
+    >
+
+    <div class="active-player-badge" id="active-player-badge">
+      <span id="menu-player-avatar" class="active-player-avatar">🧭</span>
+      <div>
+        <small>Jogando como</small>
+        <strong id="menu-player-name">Jogador</strong>
+        <span>🪙 <b id="menu-player-librix">0</b> Librix</span>
+      </div>
+      <button id="btn-change-player" type="button">Trocar</button>
+    </div>
+
+    <a
+      class="menu-hotspot hotspot-play"
+      href="jogo.html"
+      aria-label="Jogar: iniciar o desafio das letras"
+    >
+      <span>Jogar</span>
+    </a>
+
+    <a
+      class="menu-hotspot hotspot-train"
+      href="treino.html"
+      aria-label="Treinar: ensinar e praticar novos sinais"
+    >
+      <span>Treinar</span>
+    </a>
+
+    <a
+      class="menu-hotspot hotspot-ranking"
+      href="ranking.html"
+      aria-label="Abrir ranking dos jogadores"
+    >
+      <span>Ranking</span>
+    </a>
+
+    <a
+      class="menu-hotspot hotspot-how-to-play"
+      href="#"
+      id="btn-how-to-play"
+      aria-label="Abrir instruções de como jogar"
+    >
+      <span>Como jogar</span>
+    </a>
+
+  </main>
+
+  <!-- Janela Como Jogar -->
+  <div
+    id="how-to-play-modal"
+    class="how-to-play-modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="how-to-play-title"
+  >
+    <div class="how-to-play-card">
+
+      <button
+        id="btn-close-how-to-play"
+        class="how-to-play-close"
+        type="button"
+        aria-label="Fechar instruções"
+      >
+        ×
+      </button>
+
+      <h2 id="how-to-play-title">
+        🎮 Como jogar
+      </h2>
+
+      <div class="how-to-play-steps">
+
+        <div>
+          <strong>1</strong>
+
+          <p>
+            Entre com seu perfil antes de iniciar a partida.
+          </p>
+        </div>
+
+        <div>
+          <strong>2</strong>
+
+          <p>
+            Observe a letra e a imagem de exemplo do sinal.
+          </p>
+        </div>
+
+        <div>
+          <strong>3</strong>
+
+          <p>
+            Faça o sinal da letra em frente à câmera.
+          </p>
+        </div>
+
+        <div>
+          <strong>4</strong>
+
+          <p>
+            Acerte antes do tempo acabar para ganhar pontos.
+          </p>
+        </div>
+
+      </div>
+
+      <p class="how-to-play-info">
+        A partida possui 10 rodadas. Quanto mais rápido você acertar,
+        mais pontos ganhará. No final, sua pontuação será salva no ranking.
+      </p>
+
+      <p class="how-to-play-movement">
+        As letras H, J, K, X, Y e Z possuem movimento. Faça o movimento
+        completo mantendo a mão visível para a câmera.
+      </p>
+
+      <a
+        class="btn btn-primary how-to-play-start"
+        href="jogo.html"
+      >
+        Entendi, vamos jogar!
+      </a>
+
+    </div>
+  </div>
+
+  <!-- VLibras -->
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+
+  <script>
+    new window.VLibras.Widget('https://vlibras.gov.br/app');
+  </script>
+
+  <script>
+    const howToPlayModal =
+      document.getElementById('how-to-play-modal');
+
+    const openHowToPlayButton =
+      document.getElementById('btn-how-to-play');
+
+    const closeHowToPlayButton =
+      document.getElementById('btn-close-how-to-play');
+
+    function openHowToPlay() {
+      howToPlayModal.classList.remove('hidden');
+    }
+
+    function closeHowToPlay() {
+      howToPlayModal.classList.add('hidden');
+    }
+
+    openHowToPlayButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      openHowToPlay();
+    });
+
+    closeHowToPlayButton.addEventListener(
+      'click',
+      closeHowToPlay
+    );
+
+    howToPlayModal.addEventListener('click', function (event) {
+      if (event.target === howToPlayModal) {
+        closeHowToPlay();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        closeHowToPlay();
+      }
+    });
+  </script>
+
+  <script>
+    const avatarIconsMenu = {
+      exploradora: '🧭',
+      atleta: '⚽',
+      estudante: '🎓'
+    };
+
+    try {
+      const activePlayer = JSON.parse(
+        localStorage.getItem('librasPlayActivePlayer') || 'null'
+      );
+
+      if (!activePlayer) {
+        window.location.replace('perfil.html');
+      } else {
+        document.getElementById('menu-player-avatar').textContent =
+          avatarIconsMenu[activePlayer.avatar] || '🧭';
+
+        document.getElementById('menu-player-name').textContent =
+          activePlayer.playerName;
+
+        fetch(`/api/players/${encodeURIComponent(activePlayer.playerName)}`)
+          .then((response) => response.json())
+          .then((player) => {
+            document.getElementById('menu-player-librix').textContent =
+              player.balance || 0;
+
+            localStorage.setItem(
+              'librasPlayActivePlayer',
+              JSON.stringify(player)
+            );
+          })
+          .catch(() => {});
+      }
+    } catch {
+      localStorage.removeItem('librasPlayActivePlayer');
+      window.location.replace('perfil.html');
+    }
+
+    document.getElementById('btn-change-player').addEventListener('click', () => {
+      localStorage.removeItem('librasPlayActivePlayer');
+      window.location.href = 'perfil.html';
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Ranking — LibrasPlay</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="ranking-page">
+
+  <main class="ranking-screen">
+
+    <a class="back-link" href="index.html">
+      ← Voltar ao menu
+    </a>
+
+    <section class="ranking-card">
+
+      <div class="ranking-title">
+        <span>🏆</span>
+
+        <div>
+          <h1>Ranking</h1>
+          <p>Melhores jogadores do LibrasPlay</p>
+        </div>
+      </div>
+
+      <ol id="ranking-page-list" class="ranking-page-list">
+        <li>Carregando ranking...</li>
+      </ol>
+
+      <button
+        id="btn-refresh-ranking"
+        class="btn btn-primary"
+        type="button"
+      >
+        Atualizar ranking
+      </button>
+
+    </section>
+
+  </main>
+
+  <script>
+    const rankingList = document.getElementById('ranking-page-list');
+    const refreshButton = document.getElementById('btn-refresh-ranking');
+
+    const avatarIconsRanking = {
+      exploradora: '🧭',
+      atleta: '⚽',
+      estudante: '🎓'
+    };
+
+    async function loadRanking() {
+      rankingList.innerHTML = '<li>Carregando ranking...</li>';
+
+      try {
+        const response = await fetch('/api/scores?limit=10');
+
+        if (!response.ok) {
+          throw new Error('Não foi possível carregar o ranking.');
+        }
+
+        const data = await response.json();
+
+        rankingList.innerHTML = '';
+
+        if (!data.scores || data.scores.length === 0) {
+          rankingList.innerHTML =
+            '<li class="ranking-empty">Nenhuma pontuação salva ainda.</li>';
+
+          return;
+        }
+
+        data.scores.forEach((item, index) => {
+          const li = document.createElement('li');
+
+          const position = index + 1;
+
+          let medal = '';
+
+          if (position === 1) medal = '🥇';
+          else if (position === 2) medal = '🥈';
+          else if (position === 3) medal = '🥉';
+
+          li.innerHTML = `
+            <span class="ranking-position">
+              ${medal || position}
+            </span>
+
+            <span class="ranking-player">
+              ${avatarIconsRanking[item.avatar] || '🧭'}
+              ${escapeHtml(item.playerName)}
+            </span>
+
+            <strong class="ranking-score">
+              ${item.score} pontos
+            </strong>
+
+            <span class="ranking-correct">
+              ${item.correctAnswers}/${item.totalRounds}
+            </span>
+          `;
+
+          rankingList.appendChild(li);
+        });
+
+      } catch (error) {
+        rankingList.innerHTML = `
+          <li class="ranking-empty">
+            ${error.message}
+          </li>
+        `;
+      }
+    }
+
+    function escapeHtml(value) {
+      const element = document.createElement('div');
+      element.textContent = String(value);
+      return element.innerHTML;
+    }
+
+    refreshButton.addEventListener('click', loadRanking);
+
+    loadRanking();
+  </script>
+ <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+
+  <script>
+    new window.VLibras.Widget('https://vlibras.gov.br/app');
+  </script>
+
+</body>
+</html>

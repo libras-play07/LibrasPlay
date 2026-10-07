@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Jogadores — LibrasPlay</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="profile-page">
+
+  <main class="profile-screen">
+
+    <section class="profile-panel">
+
+      <div class="profile-actions">
+
+        <button
+          id="btn-new-player"
+          class="profile-main-button"
+          type="button"
+        >
+          <span>➕</span>
+
+          <strong>Novo jogador</strong>
+
+          <small>
+            Crie um perfil e escolha seu personagem
+          </small>
+        </button>
+
+      </div>
+
+      <div class="profile-list-heading">
+
+        <h2>Continuar</h2>
+
+        <span>
+          Jogadores salvos neste LibrasPlay
+        </span>
+
+      </div>
+
+      <div
+        id="players-list"
+        class="players-grid"
+      >
+        <p class="profile-loading">
+          Carregando jogadores...
+        </p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <div
+    id="create-player-modal"
+    class="profile-modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="create-player-title"
+  >
+
+    <section class="profile-modal-card">
+
+      <button
+        id="btn-close-player-modal"
+        class="profile-modal-close"
+        type="button"
+        aria-label="Fechar"
+      >
+        ×
+      </button>
+
+      <h2 id="create-player-title">
+        Criar novo jogador
+      </h2>
+
+      <label for="new-player-name">
+        Nome do jogador
+      </label>
+
+      <input
+        id="new-player-name"
+        class="field"
+        maxlength="40"
+        placeholder="Digite seu nome"
+      >
+
+      <p class="avatar-label">
+        Escolha seu personagem
+      </p>
+
+      <div class="avatar-options">
+
+        <button
+          class="avatar-option selected"
+          type="button"
+          data-avatar="explorador(a)"
+        >
+          <span>🧭</span>
+          <strong>Explorador(a)</strong>
+          <small>Corajoso(a) e curioso(a)</small>
+        </button>
+
+        <button
+          class="avatar-option"
+          type="button"
+          data-avatar="atleta"
+        >
+          <span>⚽</span>
+          <strong>Atleta</strong>
+          <small>Rápido(a) e competitivo(a)</small>
+        </button>
+
+        <button
+          class="avatar-option"
+          type="button"
+          data-avatar="estudante"
+        >
+          <span>🎓</span>
+          <strong>Estudante</strong>
+          <small>Focado(a) em aprender</small>
+        </button>
+
+      </div>
+
+      <p
+        id="create-player-message"
+        class="info-box"
+      >
+        O nome e o personagem serão usados no jogo, na loja e no ranking.
+      </p>
+
+      <button
+        id="btn-create-player"
+        class="btn btn-primary"
+        type="button"
+      >
+        Criar jogador
+      </button>
+
+    </section>
+
+  </div>
+
+  <script>
+    const avatarIcons = {
+      exploradora: '🧭',
+      atleta: '⚽',
+      estudante: '🎓'
+    };
+
+    const playersList =
+      document.getElementById('players-list');
+
+    const modal =
+      document.getElementById('create-player-modal');
+
+    const playerNameInput =
+      document.getElementById('new-player-name');
+
+    const message =
+      document.getElementById('create-player-message');
+
+    const newPlayerButton =
+      document.getElementById('btn-new-player');
+
+    const closeModalButton =
+      document.getElementById('btn-close-player-modal');
+
+    const createPlayerButton =
+      document.getElementById('btn-create-player');
+
+    let selectedAvatar = 'exploradora';
+
+    function setActivePlayer(player) {
+      localStorage.setItem(
+        'librasPlayActivePlayer',
+        JSON.stringify(player)
+      );
+
+      window.location.href = 'index.html';
+    }
+
+    function setMessage(text, type = '') {
+      message.textContent = text;
+
+      message.className =
+        `info-box${type ? ` ${type}` : ''}`;
+    }
+
+    function openModal() {
+      modal.classList.remove('hidden');
+
+      playerNameInput.value = '';
+
+      setMessage(
+        'O nome e o personagem serão usados no jogo, na loja e no ranking.'
+      );
+
+      window.setTimeout(() => {
+        playerNameInput.focus();
+      }, 100);
+    }
+
+    function closeModal() {
+      modal.classList.add('hidden');
+    }
+
+    async function request(url, options = {}) {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        },
+        ...options
+      });
+
+      const body =
+        await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          body.error ||
+          'Erro de comunicação com o servidor.'
+        );
+      }
+
+      return body;
+    }
+
+    async function loadPlayers() {
+      playersList.innerHTML = `
+        <p class="profile-loading">
+          Carregando jogadores...
+        </p>
+      `;
+
+      try {
+        const data =
+          await request('/api/players');
+
+        playersList.innerHTML = '';
+
+        if (
+          !Array.isArray(data.players) ||
+          data.players.length === 0
+        ) {
+          playersList.innerHTML = `
+            <div class="profile-empty">
+              <span>🐾</span>
+
+              <strong>
+                Nenhum jogador criado
+              </strong>
+
+              <p>
+                Clique em “Novo jogador” para começar.
+              </p>
+            </div>
+          `;
+
+          return;
+        }
+
+        data.players.forEach((player) => {
+          const card =
+            document.createElement('button');
+
+          card.className = 'player-card';
+          card.type = 'button';
+
+        card.innerHTML = `
+  <span class="player-avatar">
+    ${avatarIcons[player.avatar] || '🧭'}
+  </span>
+
+  <span class="player-card-info">
+    <strong>${escapeHtml(player.playerName)}</strong>
+    <small>Melhor: ${Number(player.bestScore || 0)} pontos</small>
+    <small>Partidas: ${Number(player.gamesPlayed || 0)}</small>
+  </span>
+
+  <span class="player-card-wallet">
+    🪙 ${Number(player.balance || 0)}
+  </span>
+
+  <span
+    class="player-delete-button"
+    role="button"
+    tabindex="0"
+    title="Excluir jogador"
+    aria-label="Excluir jogador ${escapeHtml(player.playerName)}"
+  >
+    🗑️
+  </span>
+
+  <span class="player-card-arrow">
+    ▶
+  </span>
+`;
+          card.addEventListener('click', () => {
+            setActivePlayer(player);
+          });
+          const deleteButton =
+  card.querySelector('.player-delete-button');
+
+deleteButton.addEventListener('click', async (event) => {
+  event.stopPropagation();
+
+  const confirmed = window.confirm(
+    `Tem certeza que deseja excluir o jogador "${player.playerName}"?\n\nO saldo de Librix, as compras e as pontuações desse jogador também serão apagados.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await request(
+      `/api/players/${encodeURIComponent(player.playerName)}`,
+      {
+        method: 'DELETE'
+      }
+    );
+
+    const activePlayer = JSON.parse(
+      localStorage.getItem('librasPlayActivePlayer') || 'null'
+    );
+
+    if (
+      activePlayer &&
+      activePlayer.playerName.toLowerCase() ===
+      player.playerName.toLowerCase()
+    ) {
+      localStorage.removeItem('librasPlayActivePlayer');
+    }
+
+    await loadPlayers();
+
+  } catch (error) {
+    window.alert(error.message);
+  }
+});
+
+deleteButton.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    event.stopPropagation();
+    deleteButton.click();
+  }
+});
+
+          playersList.appendChild(card);
+        });
+
+      } catch (error) {
+        playersList.innerHTML = `
+          <p class="info-box error">
+            ${escapeHtml(error.message)}
+          </p>
+        `;
+      }
+    }
+
+    function escapeHtml(value) {
+      const div =
+        document.createElement('div');
+
+      div.textContent =
+        String(value);
+
+      return div.innerHTML;
+    }
+
+    newPlayerButton.addEventListener(
+      'click',
+      openModal
+    );
+
+    closeModalButton.addEventListener(
+      'click',
+      closeModal
+    );
+
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (
+        event.key === 'Escape' &&
+        !modal.classList.contains('hidden')
+      ) {
+        closeModal();
+      }
+    });
+
+    document
+      .querySelectorAll('.avatar-option')
+      .forEach((button) => {
+        button.addEventListener('click', () => {
+
+          document
+            .querySelectorAll('.avatar-option')
+            .forEach((item) => {
+              item.classList.remove('selected');
+            });
+
+          button.classList.add('selected');
+
+          selectedAvatar =
+            button.dataset.avatar;
+        });
+      });
+
+    createPlayerButton.addEventListener(
+      'click',
+      async () => {
+
+        const playerName =
+          playerNameInput.value.trim();
+
+        if (!playerName) {
+          setMessage(
+            'Digite o nome do jogador.',
+            'warning'
+          );
+
+          playerNameInput.focus();
+
+          return;
+        }
+
+        createPlayerButton.disabled = true;
+        createPlayerButton.textContent = 'Criando...';
+
+        try {
+          const player =
+            await request('/api/players', {
+              method: 'POST',
+
+              body: JSON.stringify({
+                playerName,
+                avatar: selectedAvatar
+              })
+            });
+
+          setActivePlayer(player);
+
+        } catch (error) {
+          setMessage(
+            error.message,
+            'error'
+          );
+
+          createPlayerButton.disabled = false;
+          createPlayerButton.textContent =
+            'Criar jogador';
+        }
+      }
+    );
+
+    playerNameInput.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.key === 'Enter') {
+          createPlayerButton.click();
+        }
+      }
+    );
+
+    loadPlayers();
+  </script>
+
+  <div vw class="enabled">
+
+    <div
+      vw-access-button
+      class="active"
+    ></div>
+
+    <div vw-plugin-wrapper>
+
+      <div
+        class="vw-plugin-top-wrapper"
+      ></div>
+
+    </div>
+
+  </div>
+
+  <script
+    src="https://vlibras.gov.br/app/vlibras-plugin.js"
+  ></script>
+
+  <script>
+    new window.VLibras.Widget(
+      'https://vlibras.gov.br/app'
+    );
+  </script>
+
+</body>
+</html>

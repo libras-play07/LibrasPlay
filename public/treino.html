@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Libras Play 3.0</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+
+
+<body data-page-mode="training">
+  <header class="page-header">
+    <div class="screen-heading"><a class="back-link" href="index.html">← Menu</a><h1>Modo Treino 🎓</h1><span class="heading-spacer"></span></div>
+    <p>Grave exemplos, treine a inteligência artificial e pratique os sinais.</p>
+  </header>
+
+  <main class="app-shell">
+    <section class="camera-card">
+      <div class="camera-topbar">
+        <span id="hand-badge" class="badge badge-danger">● Procurando mão</span>
+        <span id="model-badge" class="badge">IA estática não treinada</span>
+        <span id="movement-model-badge" class="badge">IA de movimento não treinada</span>
+      </div>
+
+      <div class="video-box">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="output_canvas" width="640" height="480"></canvas>
+        <div class="prediction-overlay">
+          <small>Reconhecimento</small>
+          <strong id="prediction-result">---</strong>
+          <span id="prediction-confidence">Confiança: 0%</span>
+          <span id="movement-status">Movimento: aguardando</span>
+        </div>
+      </div>
+
+      <div class="camera-footer">
+        <span>Status: <strong id="hand-status">Detectando...</strong></span>
+        <span>Estáticas: <strong id="sample-count">0</strong></span>
+        <span>Movimentos: <strong id="movement-count">0</strong></span>
+        <span>Banco: <strong id="database-status">Conectando...</strong></span>
+      </div>
+    </section>
+
+    <aside class="side-card">
+      <div class="mode-tabs internal-tabs">
+        <button id="tab-training" class="tab active" type="button">Treinamento</button>
+        <button id="tab-game" class="tab" type="button">Modo Jogo</button>
+      </div>
+
+      <section id="training-panel" class="panel-section active">
+        <h2>Controle do modelo</h2>
+        <label for="label-select">Sinal para treinar</label>
+        <select id="label-select" class="field"></select>
+
+        <div id="signal-type-card" class="signal-type-card">
+          <strong id="signal-type-title">Letra estática</strong>
+          <span id="signal-type-description">Grave posições variadas durante 5 segundos.</span>
+        </div>
+
+        <button id="btn-collect" class="btn btn-primary" type="button">Gravar amostras (5s)</button>
+        <button id="btn-train" class="btn btn-secondary" type="button" disabled>Treinar IA estática</button>
+        <button id="btn-train-movement" class="btn btn-purple" type="button" disabled>Treinar IA de movimento</button>
+        <button id="btn-delete-signal" class="btn btn-danger" type="button">Excluir sinal selecionado</button>
+        <button id="btn-clear-all" class="btn btn-dark" type="button">Limpar todo o dataset</button>
+
+        <div class="model-card">
+          <div><small>Modelo estático</small><strong id="model-version">Nenhum</strong></div>
+          <div><small>Precisão</small><strong id="model-accuracy">—</strong></div>
+          <div><small>Pasta</small><strong id="model-folder">—</strong></div>
+        </div>
+
+        <div class="model-card movement-card">
+          <div><small>Modelo movimento</small><strong id="movement-model-version">Nenhum</strong></div>
+          <div><small>Precisão</small><strong id="movement-model-accuracy">—</strong></div>
+          <div><small>Pasta</small><strong id="movement-model-folder">—</strong></div>
+        </div>
+
+        <div id="training-message" class="info-box">Escolha uma letra e grave exemplos variados.</div>
+      </section>
+
+      <section id="game-panel" class="panel-section">
+        <h2>Desafio das letras</h2>
+        <label for="player-name">Nome do jogador</label>
+        <input id="player-name" class="field" maxlength="40" value="Jogador">
+
+        <div class="score-grid">
+          <div><small>Pontos</small><strong id="game-score">0</strong></div>
+          <div><small>Rodada</small><strong id="game-round">0/10</strong></div>
+          <div><small>Acertos</small><strong id="game-correct">0</strong></div>
+        </div>
+
+        <div class="challenge-grid">
+          <div class="challenge-letter"><small>Faça a letra</small><strong id="challenge-letter">?</strong></div>
+          <div class="timer-box"><small>Tempo restante</small><strong id="game-time">10</strong><span>segundos</span></div>
+        </div>
+
+        <div id="game-message" class="info-box">Treine a IA antes de iniciar.</div>
+        <button id="btn-start-game" class="btn btn-primary" type="button">Iniciar jogo</button>
+        <button id="btn-stop-game" class="btn btn-danger" type="button" disabled>Encerrar jogo</button>
+
+        <div class="ranking-box">
+          <h3>Melhores pontuações</h3>
+          <ol id="ranking-list"><li>Nenhuma partida salva.</li></ol>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div id="training-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="brain-icon">🧠</div>
+      <h2 id="training-modal-title">Treinando IA</h2>
+      <p id="training-modal-text">Preparando os dados...</p>
+      <div class="progress-track"><div id="training-progress" class="progress-bar"></div></div>
+      <strong id="training-percent">0%</strong>
+      <div class="training-stats">
+        <span>Classes: <strong id="training-labels-count">0</strong></span>
+        <span>Amostras: <strong id="training-samples-count">0</strong></span>
+        <span>Precisão: <strong id="training-accuracy">0%</strong></span>
+      </div>
+      <button id="btn-close-training-modal" class="btn btn-primary hidden" type="button">Fechar</button>
+    </div>
+  </div>
+
+    <script src="app.js"></script>
+
+  <!-- VLibras -->
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+
+  <script>
+    new window.VLibras.Widget('https://vlibras.gov.br/app');
+  </script>
+
+</body>
+</html>
+
+
+</body>
+</html>

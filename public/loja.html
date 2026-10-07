@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loja Librix — LibrasPlay</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+
+  <body class="shop-page">
+  <main class="shop-screen">
+    <div class="shop-topbar">
+      <a class="back-link" href="index.html">← Menu</a>
+
+      <div class="shop-title">
+        <span>🛍️</span>
+        <div>
+          <h1>Loja Librix</h1>
+          <p>Use suas moedas para desbloquear itens.</p>
+        </div>
+      </div>
+
+      <div class="shop-wallet">
+        <span>🪙</span>
+        <strong><span id="shop-balance">0</span> Librix</strong>
+      </div>
+    </div>
+
+    <section class="shop-player-card">
+      <label for="shop-player-name">Nome do jogador</label>
+      <div class="shop-player-row">
+        <input
+          id="shop-player-name"
+          class="field"
+          maxlength="40"
+          placeholder="Jogador ativo"
+          readonly
+        >
+        <a class="btn btn-purple shop-change-player" href="perfil.html">
+          Trocar jogador
+        </a>
+      </div>
+      <p id="shop-message" class="info-box">
+        A loja está ligada ao jogador ativo.
+      </p>
+    </section>
+
+    <section id="shop-items" class="shop-grid">
+      <p class="shop-loading">Carregando itens...</p>
+    </section>
+  </main>
+
+  <script>
+    const playerInput = document.getElementById('shop-player-name');
+    const balanceElement = document.getElementById('shop-balance');
+    const itemsElement = document.getElementById('shop-items');
+    const messageElement = document.getElementById('shop-message');
+    const loadButton = document.getElementById('btn-load-shop');
+
+    let activePlayer = null;
+
+    try {
+      activePlayer = JSON.parse(
+        localStorage.getItem('librasPlayActivePlayer') || 'null'
+      );
+    } catch {
+      activePlayer = null;
+    }
+
+    if (!activePlayer) {
+      window.location.replace('perfil.html');
+    } else {
+      playerInput.value = activePlayer.playerName;
+    }
+
+    function playerName() {
+      return playerInput.value.trim() || 'Jogador';
+    }
+
+    function setMessage(text, type = '') {
+      messageElement.textContent = text;
+      messageElement.className = `info-box${type ? ` ${type}` : ''}`;
+    }
+
+    async function request(url, options = {}) {
+      const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+      });
+
+      const body = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(body.error || 'Erro de comunicação com o servidor.');
+      }
+
+      return body;
+    }
+
+    async function loadShop() {
+      itemsElement.innerHTML = '<p class="shop-loading">Carregando itens...</p>';
+
+      try {
+        const data = await request(
+          `/api/shop/items?playerName=${encodeURIComponent(playerName())}`
+        );
+
+        balanceElement.textContent = data.balance;
+        itemsElement.innerHTML = '';
+
+        data.items.forEach((item) => {
+          const card = document.createElement('article');
+          card.className = `shop-item${item.owned ? ' owned' : ''}`;
+
+          card.innerHTML = `
+            <span class="shop-item-icon">${item.icon}</span>
+            <span class="shop-item-category">${item.category}</span>
+            <h2>${item.name}</h2>
+            <p>${item.description}</p>
+            <strong class="shop-item-price">
+              ${item.owned ? 'Adquirido ✅' : `🪙 ${item.price} Librix`}
+            </strong>
+            <button
+              class="btn ${item.owned ? 'btn-dark' : 'btn-primary'}"
+              type="button"
+              ${item.owned ? 'disabled' : ''}
+            >
+              ${item.owned ? 'Você já possui' : 'Comprar'}
+            </button>
+          `;
+
+          const button = card.querySelector('button');
+
+          if (!item.owned) {
+            button.addEventListener('click', () => buyItem(item.id));
+          }
+
+          itemsElement.appendChild(card);
+        });
+
+        setMessage(`Loja carregada para ${data.playerName}.`, 'success');
+      } catch (error) {
+        itemsElement.innerHTML = '';
+        setMessage(error.message, 'error');
+      }
+    }
+
+    async function buyItem(itemId) {
+      try {
+        const data = await request('/api/shop/buy', {
+          method: 'POST',
+          body: JSON.stringify({
+            playerName: playerName(),
+            itemId
+          })
+        });
+
+        balanceElement.textContent = data.balance;
+        setMessage(`${data.itemName} comprado com sucesso!`, 'success');
+        await loadShop();
+      } catch (error) {
+        setMessage(error.message, 'error');
+      }
+    }
+
+    if (loadButton) {
+      loadButton.addEventListener('click', loadShop);
+    }
+
+    loadShop();
+  </script>
+
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>
+    new window.VLibras.Widget('https://vlibras.gov.br/app');
+  </script>
+</body>
+</html>
